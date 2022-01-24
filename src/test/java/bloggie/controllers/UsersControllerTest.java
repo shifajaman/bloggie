@@ -1,5 +1,6 @@
 package bloggie.controllers;
 
+import bloggie.controllers.advice.GlobalControllerAdvice;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ class UsersControllerTest {
 
     @BeforeEach
     void setup(){
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalControllerAdvice()).build();
     }
 
     @Test
@@ -54,9 +55,13 @@ class UsersControllerTest {
         var requestBody = """
                 {"name":""}
                 """;
-
+        var expectedResp = """
+                {"user":null,"errors":[{"description":"name needs to be greater than 4 and less than 255","errorCode":"INVALID_USER_NAME"}]}
+                """;
         var responseBody = mockMvc.perform(createRequest(requestBody))
                 .andExpect(MockMvcResultMatchers.status().is4xxClientError())
                 .andReturn().getResponse().getContentAsString();
+
+        assertEquals(expectedResp.trim(), responseBody.trim());
     }
 }
