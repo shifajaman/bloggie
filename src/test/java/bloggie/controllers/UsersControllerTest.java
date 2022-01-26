@@ -41,10 +41,12 @@ class UsersControllerTest {
                 {"name":"shifa"}
                 """;
         var expectedResp = """
-                {"user":{"name":"shifa"},"errors":null}
+                {"user":{"id":1,"name":"shifa"},"errors":null}
                 """;
-        var user = new User("shifa");
-        Mockito.when(service.createUser(user)).thenReturn(user);
+        var inputUser = new User("shifa");
+        var createdUser = new User(1, "shifa");
+
+        Mockito.when(service.createUser(inputUser)).thenReturn(createdUser);
 
         var responseBody = mockMvc.perform(createRequest(requestBody))
                 .andExpect(MockMvcResultMatchers.status().is2xxSuccessful())
