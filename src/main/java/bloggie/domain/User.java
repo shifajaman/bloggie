@@ -1,6 +1,9 @@
 package bloggie.domain;
 
+import java.util.Objects;
+
 public class User {
+
     private String name;
 
     public User() {
@@ -16,6 +19,19 @@ public class User {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(getName(), user.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getName());
     }
 
     @Override
