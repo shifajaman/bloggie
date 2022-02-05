@@ -22,12 +22,12 @@ class UserServiceTest {
     public void shouldCreateAUser() {
         UserService service = new UserService(userRepository);
         var inputUser = new User("shifa");
-        var createdUser = new User(1, "shifa");
-        Mockito.when(userRepository.save(inputUser)).thenReturn(createdUser);
+        var expectedUser = new User(1, "shifa");
+        Mockito.when(userRepository.save(inputUser)).thenReturn(expectedUser);
 
-        var actual = service.createUser(inputUser);
+        var output = service.createUser(inputUser);
 
-        Assertions.assertEquals(actual, createdUser);
+        Assertions.assertEquals(expectedUser, output);
     }
 
     @Test

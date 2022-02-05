@@ -1,9 +1,12 @@
 package bloggie.controllers;
 
+import bloggie.contracts.response.UserCreatedResponse;
 import bloggie.controllers.advice.GlobalControllerAdvice;
 import bloggie.domain.User;
 import bloggie.errors.InvalidDataException;
 import bloggie.service.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -41,7 +45,7 @@ class UsersControllerTest {
         var requestBody = """
                 {"name":"shifa"}
                 """;
-        var expectedResp = """
+        var expectedResp = """                                    
                 {"user":{"id":1,"name":"shifa"},"errors":null}
                 """;
         var inputUser = new User("shifa");
@@ -49,7 +53,8 @@ class UsersControllerTest {
 
         Mockito.when(service.createUser(inputUser)).thenReturn(createdUser);
 
-        var responseBody = mockMvc.perform(createRequest(requestBody))
+        ResultActions result = mockMvc.perform(createRequest(requestBody));
+        var responseBody = result
                 .andExpect(MockMvcResultMatchers.status().is2xxSuccessful())
                 .andReturn().getResponse().getContentAsString();
 
@@ -62,7 +67,7 @@ class UsersControllerTest {
                 {"name":"shifa"}
                 """;
         var expectedResp = """
-                {"user":null,"errors":[{"description":null,"errorCode":"INVALID_USER_NAME"}]}
+                 {"user":null,"errors":[{"description":null,"errorCode":"INVALID_USER_NAME"}]}
                 """;
         var inputUser = new User("shifa");
 
@@ -75,7 +80,7 @@ class UsersControllerTest {
         assertEquals(expectedResp.trim(), responseBody.trim());
     }
 
-    private MockHttpServletRequestBuilder createRequest(String requestBody) {
+    private MockHttpServletRequestBuilder   createRequest(String requestBody) {
         return MockMvcRequestBuilders.post("/v1/users/").content(requestBody).contentType("application/json");
     }
 
@@ -92,6 +97,10 @@ class UsersControllerTest {
                 .andExpect(MockMvcResultMatchers.status().is4xxClientError())
                 .andReturn().getResponse().getContentAsString();
 
-        assertEquals(expectedResp.trim(), responseBody.trim());
+        assertEquals(createdResponseObj(expectedResp.trim()), createdResponseObj(responseBody.trim()));
+    }
+    private UserCreatedResponse createdResponseObj(String responseBody) throws JsonProcessingException {
+        ObjectMapper objectMapper=new ObjectMapper();
+        return objectMapper.readValue(responseBody,UserCreatedResponse.class);
     }
 }
