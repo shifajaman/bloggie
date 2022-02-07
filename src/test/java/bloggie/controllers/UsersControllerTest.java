@@ -1,5 +1,6 @@
 package bloggie.controllers;
 
+import bloggie.errors.InternalServerException;
 import bloggie.contracts.response.UserCreatedResponse;
 import bloggie.controllers.advice.GlobalControllerAdvice;
 import bloggie.domain.User;
@@ -13,16 +14,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class UsersControllerTest {
@@ -35,7 +39,7 @@ class UsersControllerTest {
     private MockMvc mockMvc;
 
     @BeforeEach
-    void setup(){
+    void setup() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalControllerAdvice()).build();
     }
 
@@ -51,15 +55,16 @@ class UsersControllerTest {
         var inputUser = new User("shifa");
         var createdUser = new User(1, "shifa");
 
-        Mockito.when(service.createUser(inputUser)).thenReturn(createdUser);
+        when(service.createUser(inputUser)).thenReturn(createdUser);
 
         ResultActions result = mockMvc.perform(createRequest(requestBody));
         var responseBody = result
-                .andExpect(MockMvcResultMatchers.status().is2xxSuccessful())
+                .andExpect(status().is2xxSuccessful())
                 .andReturn().getResponse().getContentAsString();
 
         assertEquals(expectedResp.trim(), responseBody.trim());
     }
+
     @Test
     @DisplayName("create user should fail by returning 4xx status code for existing user name")
     void createUserShouldFailForExistingUserName() throws Exception {
@@ -71,18 +76,19 @@ class UsersControllerTest {
                 """;
         var inputUser = new User("shifa");
 
-        Mockito.when(service.createUser(inputUser)).thenThrow(InvalidDataException.class);
+        when(service.createUser(inputUser)).thenThrow(InvalidDataException.class);
 
         var responseBody = mockMvc.perform(createRequest(requestBody))
-                .andExpect(MockMvcResultMatchers.status().is4xxClientError())
+                .andExpect(status().is4xxClientError())
                 .andReturn().getResponse().getContentAsString();
 
         assertEquals(expectedResp.trim(), responseBody.trim());
     }
 
-    private MockHttpServletRequestBuilder   createRequest(String requestBody) {
+    private MockHttpServletRequestBuilder createRequest(String requestBody) {
         return MockMvcRequestBuilders.post("/v1/users/").content(requestBody).contentType("application/json");
     }
+
 
     @Test
     @DisplayName("create user should fail if the user name is not present")
@@ -94,13 +100,52 @@ class UsersControllerTest {
                 {"user":null,"errors":[{"description":"name needs to be greater than 4 and less than 255","errorCode":"INVALID_USER_NAME"}]}
                 """;
         var responseBody = mockMvc.perform(createRequest(requestBody))
-                .andExpect(MockMvcResultMatchers.status().is4xxClientError())
+                .andExpect(status().is4xxClientError())
                 .andReturn().getResponse().getContentAsString();
 
         assertEquals(createdResponseObj(expectedResp.trim()), createdResponseObj(responseBody.trim()));
     }
+
     private UserCreatedResponse createdResponseObj(String responseBody) throws JsonProcessingException {
-        ObjectMapper objectMapper=new ObjectMapper();
-        return objectMapper.readValue(responseBody,UserCreatedResponse.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(responseBody, UserCreatedResponse.class);
+    }
+
+    @Test
+    @DisplayName("should return list of users on success")
+    void shouldReturnTheListOfUsers() throws Exception {
+        User user1 = new User(1, "shifa");
+        User user2 = new User(2, "zeeshan");
+        List<User> users = new ArrayList<>();
+        users.add(user1);
+        users.add(user2);
+        when(service.findAllUser()).thenReturn(users);
+        var result = mockMvc.perform(getAllUserReq()
+                        .contentType("application/json"))
+                .andExpect(status().isOk());
+
+        String expectedRespBody = """
+                {"user":[{"id":1,"name":"shifa"},{"id":2,"name":"zeeshan"}],"errors":null}
+                """;
+        assertEquals(expectedRespBody.trim(), result.andReturn().getResponse().getContentAsString());
+    }
+
+
+    @Test
+    @DisplayName("should not return the list of users on failure")
+    void shouldNotReturnTheListOfUsers() throws Exception {
+        when(service.findAllUser()).thenThrow(new InternalServerException("something went wrong",null));
+        var result = mockMvc.perform(getAllUserReq()
+                        .contentType("application/json"))
+                .andExpect(status().is5xxServerError());
+
+        String expectedRespBody = """
+                {"user":null,"errors":[{"description":"something went wrong","errorCode":"INTERNAL_SERVER_ERROR"}]}
+                """;
+        assertEquals(expectedRespBody.trim(), result.andReturn().getResponse().getContentAsString());
+    }
+
+    private MockHttpServletRequestBuilder getAllUserReq() {
+        return MockMvcRequestBuilders.get("/v1/users/").contentType("application/json");
     }
 }

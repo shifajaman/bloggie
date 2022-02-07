@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class UserService {
     UserRepository repository;
@@ -21,6 +23,13 @@ public class UserService {
             return repository.save(user);
         } catch (DataIntegrityViolationException e) {
             throw new InvalidDataException(String.format("user name %s is already taken", user.getName()), e);
+        }
+    }
+    public List<User> findAllUser() throws InvalidDataException {
+        try{
+            return repository.findAll();
+        }catch (DataIntegrityViolationException e){
+            throw new InvalidDataException("list of user",e);
         }
     }
 }

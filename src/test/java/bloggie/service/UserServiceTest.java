@@ -1,6 +1,7 @@
 package bloggie.service;
 
 import bloggie.domain.User;
+import bloggie.errors.InternalServerException;
 import bloggie.errors.InvalidDataException;
 import bloggie.repository.UserRepository;
 import org.junit.jupiter.api.Assertions;
@@ -11,6 +12,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -38,7 +42,32 @@ class UserServiceTest {
 
         Mockito.when(userRepository.save(inputUser)).thenThrow(DataIntegrityViolationException.class);
 
-        var exception= Assertions.assertThrows(InvalidDataException.class, () -> service.createUser(inputUser));
+        var exception = Assertions.assertThrows(InvalidDataException.class, () -> service.createUser(inputUser));
         Assertions.assertEquals("user name shifa is already taken", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("should find all user on success")
+    public void shouldFindAllUser() {
+        UserService service = new UserService(userRepository);
+        User user1 = new User(1, "shifa");
+        User user2 = new User(2, "zeeshan");
+        List<User> users = new ArrayList<>();
+        users.add(user1);
+        users.add(user2);
+        Mockito.when(userRepository.findAll()).thenReturn(users);
+
+        var output = service.findAllUser();
+        Assertions.assertEquals(users, output);
+    }
+    @Test
+    @DisplayName("should not find any user on failure")
+    public void shouldNotFindAnyUser() {
+        UserService service = new UserService(userRepository);
+
+        Mockito.when(userRepository.findAll()).thenThrow( new InternalServerException("something went wrong",null));
+
+        var exception = Assertions.assertThrows(InternalServerException.class, () -> service.findAllUser());
+        Assertions.assertEquals("something went wrong",exception.getMessage());
     }
 }

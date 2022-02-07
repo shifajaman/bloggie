@@ -1,6 +1,7 @@
 package bloggie.controllers;
 
 import bloggie.contracts.request.CreateUserRequest;
+import bloggie.contracts.response.GetAllUserResponse;
 import bloggie.contracts.response.UserCreatedResponse;
 import bloggie.domain.User;
 import bloggie.service.UserService;
@@ -23,4 +24,13 @@ public class UsersController {
         var createdUser = service.createUser(user);
         return new UserCreatedResponse(createdUser, null);
     }
+
+    @GetMapping(value="/")
+    @ResponseStatus(HttpStatus.OK)
+    public GetAllUserResponse getAll(){
+        var allUsers=service.findAllUser();
+        return new GetAllUserResponse(allUsers, null);
+    }
+
+
 }
