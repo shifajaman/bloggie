@@ -1,5 +1,4 @@
 package bloggie.service;
-
 import bloggie.domain.User;
 import bloggie.errors.InternalServerException;
 import bloggie.errors.InvalidDataException;
@@ -9,12 +8,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -27,7 +28,7 @@ class UserServiceTest {
         UserService service = new UserService(userRepository);
         var inputUser = new User("shifa");
         var expectedUser = new User(1, "shifa");
-        Mockito.when(userRepository.save(inputUser)).thenReturn(expectedUser);
+        when(userRepository.save(inputUser)).thenReturn(expectedUser);
 
         var output = service.createUser(inputUser);
 
@@ -40,9 +41,9 @@ class UserServiceTest {
         UserService service = new UserService(userRepository);
         var inputUser = new User("shifa");
 
-        Mockito.when(userRepository.save(inputUser)).thenThrow(DataIntegrityViolationException.class);
+        when(userRepository.save(inputUser)).thenThrow(DataIntegrityViolationException.class);
 
-        var exception = Assertions.assertThrows(InvalidDataException.class, () -> service.createUser(inputUser));
+        var exception = assertThrows(InvalidDataException.class, () -> service.createUser(inputUser));
         Assertions.assertEquals("user name shifa is already taken", exception.getMessage());
     }
 
@@ -55,19 +56,45 @@ class UserServiceTest {
         List<User> users = new ArrayList<>();
         users.add(user1);
         users.add(user2);
-        Mockito.when(userRepository.findAll()).thenReturn(users);
+        when(userRepository.findAll()).thenReturn(users);
 
         var output = service.findAllUser();
         Assertions.assertEquals(users, output);
     }
+
     @Test
     @DisplayName("should not find any user on failure")
     public void shouldNotFindAnyUser() {
         UserService service = new UserService(userRepository);
 
-        Mockito.when(userRepository.findAll()).thenThrow( new InternalServerException("something went wrong",null));
+        when(userRepository.findAll()).thenThrow(new InternalServerException("something went wrong", null));
 
-        var exception = Assertions.assertThrows(InternalServerException.class, () -> service.findAllUser());
-        Assertions.assertEquals("something went wrong",exception.getMessage());
+        var exception = assertThrows(InternalServerException.class, () -> service.findAllUser());
+        Assertions.assertEquals("something went wrong", exception.getMessage());
     }
+
+    @Test
+    @DisplayName("ShouldFindUserWithGivenId")
+    void shouldFindUserWithGivenId() {
+        UserService service = new UserService(userRepository);
+        User user = new User(1, "shifa");
+
+        when(userRepository.findById("1")).thenReturn(Optional.of(user));
+
+        Optional<User> actual = service.findById("1");
+
+
+        var expected = service.findById("1");
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    @DisplayName("ShouldNotFindUserWithGivenId")
+    void ShouldNotFindUserWithGivenId() {
+        UserService service = new UserService(userRepository);
+        doReturn(Optional.empty()).when(userRepository).findById("1");
+        Optional<User> returnedUser = service.findById("1");
+        Assertions.assertFalse(returnedUser.isPresent(), "User should not be found");
+    }
+
 }

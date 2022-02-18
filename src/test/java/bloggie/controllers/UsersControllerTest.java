@@ -20,10 +20,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -134,7 +133,7 @@ class UsersControllerTest {
     @Test
     @DisplayName("should not return the list of users on failure")
     void shouldNotReturnTheListOfUsers() throws Exception {
-        when(service.findAllUser()).thenThrow(new InternalServerException("something went wrong",null));
+        when(service.findAllUser()).thenThrow(new InternalServerException("something went wrong", null));
         var result = mockMvc.perform(getAllUserReq()
                         .contentType("application/json"))
                 .andExpect(status().is5xxServerError());
@@ -148,4 +147,31 @@ class UsersControllerTest {
     private MockHttpServletRequestBuilder getAllUserReq() {
         return MockMvcRequestBuilders.get("/v1/users/").contentType("application/json");
     }
+
+    @Test
+    @DisplayName("should return user with id on success")
+    void shouldReturnUserWithId() throws Exception {
+        User user1 = new User(1, "shifa");
+        when(service.findById("1")).thenReturn(Optional.of(user1));
+        var result = mockMvc.perform(findUserByIdReq()
+                        .contentType("application/json"))
+                .andExpect(status().isOk());
+
+
+    }
+
+    private MockHttpServletRequestBuilder findUserByIdReq() {
+        return MockMvcRequestBuilders.get("/v1/users/1").param("id", "1").contentType("application/json");
+    }
+
+    @Test
+    @DisplayName("Should not return user with given id ")
+    void shouldNotreturnUserWithId() throws Exception {
+        when(service.findById("1")).thenReturn(Optional.empty());
+        var result = mockMvc.perform(findUserByIdReq()
+                        .contentType("application/json"))
+                .andExpect(status().is4xxClientError());
+
+    }
+
 }
